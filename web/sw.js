@@ -1,7 +1,7 @@
 // Offline support. The app is cached as one versioned bundle so the ES modules always come from the
 // same release (mixing versions breaks module linking). Bump VERSION on every deploy: the new worker
 // downloads the whole bundle in the background and the next launch uses it.
-const VERSION = 'padel-v3';
+const VERSION = 'padel-v4';
 const ASSETS = [
   './',
   'index.html',

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#0c1712">
+  <meta name="theme-color" content="#7c4ddb">
   <meta name="description" content="Marcador de pádel controlado desde el reloj">
   <title>Pádel Score</title>
   <link rel="manifest" href="manifest.webmanifest">
@@ -13,121 +13,161 @@
   <script type="module" src="js/app.js"></script>
 </head>
 <body>
+  <!-- Icons used across the app -->
+  <svg width="0" height="0" class="sprite" aria-hidden="true">
+    <symbol id="i-prev" viewBox="0 0 24 24"><path d="M5 5h2.6v14H5zM19 5.4v13.2L9 12z"/></symbol>
+    <symbol id="i-next" viewBox="0 0 24 24"><path d="M16.4 5H19v14h-2.6zM5 5.4v13.2L15 12z"/></symbol>
+    <symbol id="i-playpause" viewBox="0 0 24 24"><path d="M3 5.4v13.2L11.5 12zM13.5 5.5h2.6v13h-2.6zM18.4 5.5H21v13h-2.6z"/></symbol>
+    <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9.5 6.5 4 12l5.5 5.5 1.8-1.8-2.4-2.4H14a4 4 0 0 1 0 8h-2v2.6h2a6.6 6.6 0 0 0 0-13.2H8.9l2.4-2.4z"/></symbol>
+    <symbol id="i-watch" viewBox="0 0 24 24"><path d="M8 2h8l.8 3.2A7 7 0 0 1 19 10.5v3a7 7 0 0 1-2.2 5.3L16 22H8l-.8-3.2A7 7 0 0 1 5 13.5v-3a7 7 0 0 1 2.2-5.3zm4 5a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm-.9 1.8h1.8v3.4l2.3 1.4-.9 1.5-3.2-1.9z"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16v2.4H4zm0 4.8h16v2.4H4zm0 4.8h16V18H4z"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="M15.4 4.6 8 12l7.4 7.4-1.8 1.8L4.4 12l9.2-9.2z"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m9.5 16.2-4.2-4.2-1.8 1.8 6 6 11-11-1.8-1.8z"/></symbol>
+  </svg>
+
   <main id="app">
     <!-- Inicio -->
     <section id="view-home" class="view">
-      <header class="brand">
-        <img src="icons/icon-192.png" alt="" width="56" height="56">
-        <h1>Pádel Score</h1>
+      <header class="hero">
+        <img src="icons/icon-192.png" alt="" width="72" height="72">
+        <div>
+          <h1>Pádel Score</h1>
+          <p>¡Hola! ¿Jugamos?</p>
+        </div>
       </header>
-      <button id="btn-resume" class="btn primary big" hidden>
-        Continuar partido
+      <button id="btn-resume" class="btn btn-yellow btn-xl" hidden>
+        <span>Seguir partido</span>
         <small id="resume-info"></small>
       </button>
-      <button id="btn-new" class="btn primary big">Nuevo partido</button>
-      <button id="btn-history" class="btn secondary big">Historial</button>
-      <div class="help">
-        <h2>Cómo se usa con el reloj</h2>
-        <ol>
-          <li>Abrí el partido y tocá <b>⌚ Activar reloj</b>.</li>
-          <li>En el reloj, entrá a la pantalla de <b>música</b>.</li>
-          <li><b>⏮ izquierda</b>: punto para el equipo de la izquierda. <b>⏭ derecha</b>: punto para el de la derecha. <b>⏯ centro</b>: deshacer.</li>
+      <button id="btn-new" class="btn btn-primary btn-xl">Nuevo partido</button>
+      <button id="btn-history" class="btn btn-soft btn-xl">Partidos anteriores</button>
+
+      <section class="card how" aria-labelledby="how-title">
+        <h2 id="how-title">Cómo se usa el reloj</h2>
+        <div class="watch-legend" data-legend></div>
+        <ol class="steps">
+          <li>Empezá un partido y tocá <b>Activar reloj</b>.</li>
+          <li>En el reloj, abrí la pantalla de <b>música</b>.</li>
+          <li>Tocá el lado de quien ganó el punto.</li>
         </ol>
-        <p>Un pitido: punto de la izquierda. Dos pitidos: punto de la derecha.</p>
-        <h2>Para que no falle con el celu bloqueado</h2>
-        <ul>
-          <li>No toques <b>dos veces rápido el centro ⏯</b>: Android lo toma como "siguiente" y suma a la derecha.</li>
-          <li>En el Samsung, poné <b>Chrome</b> y <b>FunDo Health</b> con batería <b>"Sin restricciones"</b>.</li>
-          <li>No cierres (deslizando) la notificación de música de Chrome.</li>
-        </ul>
-      </div>
+        <p class="note">Con el celu guardado vas a oír <b>1 pitido</b> por punto rosa y <b>2 pitidos</b> por punto violeta.</p>
+        <details class="tips">
+          <summary>Consejos para que no falle</summary>
+          <ul>
+            <li>No toques <b>dos veces rápido el botón del medio</b>: el celu lo toma como “siguiente” y suma al equipo violeta.</li>
+            <li>En el Samsung: Ajustes → Apps → <b>Chrome</b> y <b>FunDo Health</b> → Batería → <b>Sin restricciones</b>.</li>
+            <li>No cierres la notificación de música de Chrome.</li>
+          </ul>
+        </details>
+      </section>
     </section>
 
     <!-- Configurar partido -->
     <section id="view-setup" class="view" hidden>
       <header class="bar">
-        <button class="icon-btn" data-nav="#/" aria-label="Volver">‹</button>
+        <button class="icon-btn" data-nav="#/" aria-label="Volver"><svg><use href="#i-back"/></svg></button>
         <h1>Nuevo partido</h1>
-        <span></span>
+        <span class="bar-spacer"></span>
       </header>
       <form id="setup-form" class="setup">
-        <label class="field">
-          <span>Equipo izquierda <em>⏮</em></span>
-          <input name="teamA" maxlength="20" autocomplete="off" required>
+        <label class="team-field team-a">
+          <span class="team-label"><svg><use href="#i-prev"/></svg> Equipo rosa <small>(izquierda)</small></span>
+          <input name="teamA" maxlength="16" autocomplete="off" required>
         </label>
-        <label class="field">
-          <span>Equipo derecha <em>⏭</em></span>
-          <input name="teamB" maxlength="20" autocomplete="off" required>
+        <label class="team-field team-b">
+          <span class="team-label"><svg><use href="#i-next"/></svg> Equipo violeta <small>(derecha)</small></span>
+          <input name="teamB" maxlength="16" autocomplete="off" required>
         </label>
-        <fieldset class="segmented">
-          <legend>Sets</legend>
-          <label><input type="radio" name="bestOf" value="3"><span>Mejor de 3</span></label>
-          <label><input type="radio" name="bestOf" value="1"><span>1 set</span></label>
-        </fieldset>
-        <fieldset class="segmented">
-          <legend>Juegos por set</legend>
-          <label><input type="radio" name="gamesPerSet" value="6"><span>6</span></label>
-          <label><input type="radio" name="gamesPerSet" value="4"><span>4</span></label>
-        </fieldset>
-        <fieldset class="segmented">
-          <legend>En 40-40</legend>
-          <label><input type="radio" name="deuce" value="golden"><span>Punto de oro</span></label>
-          <label><input type="radio" name="deuce" value="advantage"><span>Ventaja</span></label>
-          <label><input type="radio" name="deuce" value="star"><span>Star point</span></label>
-        </fieldset>
-        <fieldset class="segmented" id="final-set-field">
-          <legend>Tercer set</legend>
-          <label><input type="radio" name="finalSet" value="supertb"><span>Super tie-break a 10</span></label>
-          <label><input type="radio" name="finalSet" value="full"><span>Set completo</span></label>
-        </fieldset>
-        <button type="submit" class="btn primary big">Empezar</button>
+
+        <details class="card rules" id="rules">
+          <summary>
+            <span class="rules-title">Reglas</span>
+            <span class="rules-summary" id="rules-summary"></span>
+            <span class="rules-change" aria-hidden="true"></span>
+          </summary>
+          <fieldset class="segmented">
+            <legend>¿Cuántos sets?</legend>
+            <label><input type="radio" name="bestOf" value="3"><span>Al mejor de 3</span></label>
+            <label><input type="radio" name="bestOf" value="1"><span>Un solo set</span></label>
+          </fieldset>
+          <fieldset class="segmented">
+            <legend>Juegos por set</legend>
+            <label><input type="radio" name="gamesPerSet" value="6"><span>6</span></label>
+            <label><input type="radio" name="gamesPerSet" value="4"><span>4</span></label>
+          </fieldset>
+          <fieldset class="segmented">
+            <legend>Cuando quedan 40 iguales</legend>
+            <label><input type="radio" name="deuce" value="golden"><span>Punto de oro</span></label>
+            <label><input type="radio" name="deuce" value="advantage"><span>Ventaja</span></label>
+            <label><input type="radio" name="deuce" value="star"><span>Star point</span></label>
+          </fieldset>
+          <fieldset class="segmented" id="final-set-field">
+            <legend>Si quedan 1 set a 1</legend>
+            <label><input type="radio" name="finalSet" value="supertb"><span>Súper tie-break a 10</span></label>
+            <label><input type="radio" name="finalSet" value="full"><span>Tercer set completo</span></label>
+          </fieldset>
+        </details>
+
+        <button type="submit" class="btn btn-primary btn-xl">¡A jugar!</button>
       </form>
     </section>
 
     <!-- Partido -->
     <section id="view-match" class="view match" hidden>
       <header class="bar">
-        <button class="icon-btn" data-nav="#/" aria-label="Inicio">‹</button>
+        <button class="icon-btn" data-nav="#/" aria-label="Inicio"><svg><use href="#i-back"/></svg></button>
         <h1 id="match-format"></h1>
-        <button id="btn-finish" class="text-btn">Terminar</button>
+        <button id="btn-menu" class="icon-btn" aria-label="Menú" aria-expanded="false"><svg><use href="#i-menu"/></svg></button>
       </header>
+
       <div id="status-banner" class="status-banner" aria-live="polite"></div>
+
       <div class="board">
-        <button class="side" data-side="a" aria-label="Punto izquierda">
+        <button class="side" data-side="a">
           <span class="team" data-f="team"></span>
           <span class="points" data-f="points"></span>
-          <span class="games"><span data-f="games"></span><small>juegos</small></span>
-          <span class="sets"><span data-f="sets"></span><small>sets</small></span>
-          <span class="hint-key">⏮</span>
+          <span class="tally">
+            <span class="tally-item"><b data-f="games"></b><small>juegos</small></span>
+            <span class="tally-item"><b data-f="sets"></b><small>sets</small></span>
+          </span>
+          <span class="side-key"><svg><use href="#i-prev"/></svg></span>
         </button>
-        <button class="side" data-side="b" aria-label="Punto derecha">
+        <button class="side" data-side="b">
           <span class="team" data-f="team"></span>
           <span class="points" data-f="points"></span>
-          <span class="games"><span data-f="games"></span><small>juegos</small></span>
-          <span class="sets"><span data-f="sets"></span><small>sets</small></span>
-          <span class="hint-key">⏭</span>
+          <span class="tally">
+            <span class="tally-item"><b data-f="games"></b><small>juegos</small></span>
+            <span class="tally-item"><b data-f="sets"></b><small>sets</small></span>
+          </span>
+          <span class="side-key"><svg><use href="#i-next"/></svg></span>
         </button>
       </div>
-      <div id="sets-line" class="sets-line"></div>
-      <div class="controls">
-        <button id="btn-undo" class="btn secondary">↶ Deshacer</button>
-        <button id="btn-watch" class="btn watch" data-status="off">⌚ Activar reloj</button>
-        <button id="btn-options" class="btn secondary icon" aria-label="Opciones" aria-expanded="false">⚙</button>
+      <p id="sets-line" class="sets-line"></p>
+
+      <button id="btn-watch" class="btn btn-watch btn-xl" data-status="off"></button>
+      <button id="btn-undo" class="btn btn-outline btn-lg"><svg><use href="#i-undo"/></svg> Deshacer último punto</button>
+      <p id="last-point" class="last-point"></p>
+
+      <div id="menu" class="sheet" hidden>
+        <div class="sheet-card" role="dialog" aria-label="Opciones">
+          <h2>Opciones</h2>
+          <label class="toggle"><input type="checkbox" name="beeps"><span>Pitidos al sumar un punto</span></label>
+          <label class="toggle"><input type="checkbox" name="voice"><span>Decir el resultado en voz alta <small>Solo con la pantalla del celu prendida</small></span></label>
+          <label class="toggle"><input type="checkbox" name="wakeLock"><span>No apagar la pantalla del celu</span></label>
+          <label class="toggle"><input type="checkbox" name="notify"><span>Avisar el resultado con una notificación <small>Puede sacar al reloj de la pantalla de música</small></span></label>
+          <button id="btn-finish" class="btn btn-danger btn-lg">Terminar partido</button>
+          <button id="btn-menu-close" class="btn btn-soft btn-lg">Cerrar</button>
+        </div>
       </div>
-      <div id="options" class="options" hidden>
-        <label class="toggle"><input type="checkbox" name="beeps"><span>Pitidos al sumar</span></label>
-        <label class="toggle"><input type="checkbox" name="voice"><span>Cantar el marcador por voz <small>(solo con la pantalla del celu encendida)</small></span></label>
-        <label class="toggle"><input type="checkbox" name="wakeLock"><span>Mantener pantalla del celu encendida</span></label>
-        <label class="toggle"><input type="checkbox" name="notify"><span>Notificación con el marcador <small>(puede sacar al reloj de la pantalla de música)</small></span></label>
-      </div>
-      <ol id="log" class="log"></ol>
+
       <div id="winner" class="winner" hidden>
+        <div class="confetti" aria-hidden="true"></div>
         <div class="winner-card">
-          <div class="trophy">🏆</div>
+          <div class="trophy" aria-hidden="true">🏆</div>
           <h2 id="winner-title"></h2>
           <p id="winner-score"></p>
-          <button id="btn-winner-undo" class="btn secondary">↶ Deshacer último punto</button>
-          <button id="btn-winner-close" class="btn primary">Guardar y salir</button>
+          <button id="btn-winner-close" class="btn btn-primary btn-xl">Guardar partido</button>
+          <button id="btn-winner-undo" class="btn btn-soft btn-lg"><svg><use href="#i-undo"/></svg> Deshacer último punto</button>
         </div>
       </div>
     </section>
@@ -135,20 +175,20 @@
     <!-- Historial -->
     <section id="view-history" class="view" hidden>
       <header class="bar">
-        <button class="icon-btn" data-nav="#/" aria-label="Volver">‹</button>
-        <h1>Historial</h1>
-        <span></span>
+        <button class="icon-btn" data-nav="#/" aria-label="Volver"><svg><use href="#i-back"/></svg></button>
+        <h1>Partidos anteriores</h1>
+        <span class="bar-spacer"></span>
       </header>
       <ul id="history-list" class="history"></ul>
-      <p id="history-empty" class="empty" hidden>Todavía no hay partidos.</p>
+      <p id="history-empty" class="empty" hidden>Todavía no hay partidos guardados.</p>
     </section>
 
     <!-- Detalle -->
     <section id="view-detail" class="view" hidden>
       <header class="bar">
-        <button class="icon-btn" data-nav="#/historial" aria-label="Volver">‹</button>
+        <button class="icon-btn" data-nav="#/historial" aria-label="Volver"><svg><use href="#i-back"/></svg></button>
         <h1>Partido</h1>
-        <span></span>
+        <span class="bar-spacer"></span>
       </header>
       <div id="detail" class="detail"></div>
     </section>

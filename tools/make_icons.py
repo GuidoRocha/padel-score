@@ -1,11 +1,11 @@
-"""Generate the PWA icons (a padel ball on a dark court color) with no dependencies."""
+"""Generate the PWA icons (a yellow padel ball on the app's violet) with no dependencies."""
 import struct
 import zlib
 from pathlib import Path
 
-BG = (12, 23, 18)
-BALL = (215, 242, 92)
-SEAM = (245, 250, 240)
+BG = (124, 77, 219)
+BALL = (255, 200, 61)
+SEAM = (255, 250, 240)
 OUT = Path(__file__).resolve().parent.parent / "web" / "icons"
 
 

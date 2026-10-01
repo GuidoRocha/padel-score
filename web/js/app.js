@@ -11,7 +11,13 @@ const esc = (s) =>
 const SIDES = ['a', 'b'];
 const VIEWS = ['home', 'setup', 'match', 'history', 'detail'];
 const DEUCE_LABEL = { golden: 'Punto de oro', advantage: 'Ventaja', star: 'Star point' };
+const DEUCE_RULE = {
+  golden: 'Punto de oro en 40 iguales',
+  advantage: 'Con ventaja en 40 iguales',
+  star: 'Star point en 40 iguales',
+};
 const WORDS = { 0: 'cero', 15: 'quince', 30: 'treinta', 40: 'cuarenta' };
+const icon = (name) => `<svg aria-hidden="true"><use href="#i-${name}"/></svg>`;
 
 let settings = store.loadSettings();
 let match = null; // match being played
@@ -31,6 +37,7 @@ const matchVisible = () => !$('#view-match').hidden;
 
 function show(view) {
   for (const v of VIEWS) $(`#view-${v}`).hidden = v !== view;
+  $('#menu').hidden = true;
   window.scrollTo(0, 0);
   applyWakeLock();
 }
@@ -97,6 +104,22 @@ function renderHome() {
     const s = computeState(m.config, sidesOf(m));
     $('#resume-info').textContent = `${m.teams.a} vs ${m.teams.b} · ${scoreSummary(s)}`;
   }
+  renderWatchLegend($('#view-home [data-legend]'), m ? m.teams : settings.teams);
+}
+
+// Drawing of the watch's music screen showing which button does what.
+function renderWatchLegend(el, teams) {
+  el.innerHTML = `
+    <div class="wl-watch" aria-hidden="true">
+      <span class="wl-btn wl-a">${icon('prev')}</span>
+      <span class="wl-btn wl-undo">${icon('playpause')}</span>
+      <span class="wl-btn wl-b">${icon('next')}</span>
+    </div>
+    <div class="wl-labels">
+      <span class="wl-a"><b>${esc(teams.a)}</b><small>+1 punto</small></span>
+      <span class="wl-undo"><b>Deshacer</b><small>el último</small></span>
+      <span class="wl-b"><b>${esc(teams.b)}</b><small>+1 punto</small></span>
+    </div>`;
 }
 
 // ---------- Setup ----------
@@ -110,23 +133,37 @@ function renderSetup() {
     const input = form.querySelector(`input[name="${name}"][value="${cfg[name]}"]`);
     if (input) input.checked = true;
   }
-  syncFinalSetField();
+  $('#rules').open = false;
+  syncSetup();
 }
 
-function syncFinalSetField() {
-  $('#final-set-field').hidden = $('#setup-form').bestOf.value === '1';
+function formConfig(form) {
+  return normalizeConfig({
+    bestOf: Number(form.bestOf.value),
+    gamesPerSet: Number(form.gamesPerSet.value),
+    deuce: form.deuce.value,
+    finalSet: form.finalSet.value,
+  });
+}
+
+function rulesSummary(cfg) {
+  const sets = cfg.bestOf === 1 ? 'Un solo set' : 'Al mejor de 3 sets';
+  const parts = [`${sets} de ${cfg.gamesPerSet} juegos`, DEUCE_RULE[cfg.deuce]];
+  if (cfg.bestOf > 1) parts.push(cfg.finalSet === 'supertb' ? 'Súper tie-break si quedan 1 a 1' : 'Tercer set completo');
+  return parts.join(' · ');
+}
+
+function syncSetup() {
+  const form = $('#setup-form');
+  $('#final-set-field').hidden = form.bestOf.value === '1';
+  $('#rules-summary').textContent = rulesSummary(formConfig(form));
 }
 
 function startMatch(event) {
   event.preventDefault();
   const form = event.currentTarget;
   const teams = { a: form.teamA.value.trim() || 'Nosotros', b: form.teamB.value.trim() || 'Ellos' };
-  const config = normalizeConfig({
-    bestOf: Number(form.bestOf.value),
-    gamesPerSet: Number(form.gamesPerSet.value),
-    deuce: form.deuce.value,
-    finalSet: form.finalSet.value,
-  });
+  const config = formConfig(form);
   settings = { ...settings, teams, config };
   store.saveSettings(settings);
   match = store.newMatch(teams, config);
@@ -140,7 +177,8 @@ function startMatch(event) {
 // ---------- Match ----------
 
 function formatLabel(cfg) {
-  return `${cfg.bestOf === 1 ? '1 set' : 'Mejor de 3'} · ${cfg.gamesPerSet} juegos · ${DEUCE_LABEL[cfg.deuce]}`;
+  const games = cfg.gamesPerSet === 6 ? '' : ` a ${cfg.gamesPerSet}`;
+  return `${cfg.bestOf === 1 ? '1 set' : 'Mejor de 3'}${games} · ${DEUCE_LABEL[cfg.deuce]}`;
 }
 
 function scoreSummary(s) {
@@ -160,8 +198,8 @@ function pressureOf(cfg) {
 function statusText(cfg, d) {
   if (state.winner) return `Ganó ${match.teams[state.winner]}`;
   const labels = {
-    golden: 'PUNTO DE ORO',
-    star: 'STAR POINT',
+    golden: '¡Punto de oro!',
+    star: '¡Star point!',
     deuce: 'Iguales',
     advantage: `Ventaja ${match.teams[d.advantage]}`,
     tiebreak: 'Tie-break',
@@ -187,29 +225,28 @@ function renderMatch() {
   }
   $('#status-banner').textContent = statusText(cfg, d);
   const done = formatSets(state);
-  $('#sets-line').textContent = done && !state.winner ? `Sets: ${done}` : '';
+  $('#sets-line').textContent = done && !state.winner ? `Sets anteriores: ${done}` : '';
   $('#btn-undo').disabled = match.points.length === 0;
-  renderLog();
+  renderLastPoint();
   renderWinner();
   renderWatchStatus(watch.status);
   syncOptions();
 }
 
-function renderLog() {
-  const fmt = new Intl.DateTimeFormat('es', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-  $('#log').innerHTML = match.points
-    .slice(-5)
-    .reverse()
-    .map(
-      (p) =>
-        `<li><span>${p.src === 'reloj' ? '⌚' : '👆'} Punto ${esc(match.teams[p.s])}</span><span class="src">${fmt.format(p.t)}</span></li>`,
-    )
-    .join('');
+function renderLastPoint() {
+  const last = match.points.at(-1);
+  const time = last && new Intl.DateTimeFormat('es', { hour: '2-digit', minute: '2-digit' }).format(last.t);
+  $('#last-point').textContent = last
+    ? `Último punto: ${match.teams[last.s]} · ${last.src === 'reloj' ? 'desde el reloj' : 'desde el celu'} · ${time}`
+    : 'Tocá un lado o usá el reloj para sumar el primer punto';
 }
 
 function renderWinner() {
   $('#winner').hidden = !state.winner;
   if (!state.winner) return;
+  const card = $('#winner .winner-card');
+  card.classList.toggle('winner-a', state.winner === 'a');
+  card.classList.toggle('winner-b', state.winner === 'b');
   $('#winner-title').textContent = `¡Ganó ${match.teams[state.winner]}!`;
   $('#winner-score').textContent = formatSets(state);
 }
@@ -325,13 +362,17 @@ function closeMatch() {
 function renderWatchStatus(status) {
   const btn = $('#btn-watch');
   btn.dataset.status = status;
-  btn.textContent = { on: '⌚ Reloj activo', paused: '⌚ Reactivar reloj', off: '⌚ Activar reloj' }[status];
+  btn.innerHTML = {
+    on: `${icon('check')} Reloj activo`,
+    paused: `${icon('watch')} Tocá para reactivar el reloj`,
+    off: `${icon('watch')} Activar reloj`,
+  }[status];
 }
 
 async function toggleWatch() {
   unlockAudio();
   if (watch.status === 'on') {
-    watch.stop();
+    if (confirm('¿Desactivar el reloj? Los toques del reloj van a dejar de sumar puntos.')) watch.stop();
     return;
   }
   await watch.start();
@@ -340,7 +381,7 @@ async function toggleWatch() {
 
 function syncOptions() {
   for (const name of ['beeps', 'voice', 'wakeLock', 'notify']) {
-    $(`#options input[name="${name}"]`).checked = Boolean(settings[name]);
+    $(`#menu input[name="${name}"]`).checked = Boolean(settings[name]);
   }
 }
 
@@ -389,10 +430,11 @@ function renderHistory() {
     .map((m) => {
       const s = computeState(m.config, sidesOf(m));
       const badge = m.id === activeId ? 'En curso' : s.winner ? '' : 'Sin terminar';
+      const team = (side) => `<span class="t${side}">${esc(m.teams[side])}${s.winner === side ? ' 🏆' : ''}</span>`;
       return `<li><button data-id="${esc(m.id)}">
         <span class="h-date">${esc(dateFmt.format(m.createdAt))}</span>
         <span class="h-score">${esc(scoreSummary(s))}</span>
-        <span class="h-teams"><span class="${s.winner === 'a' ? 'won' : ''}">${esc(m.teams.a)}</span> vs <span class="${s.winner === 'b' ? 'won' : ''}">${esc(m.teams.b)}</span></span>
+        <span class="h-teams">${team('a')} vs ${team('b')}</span>
         ${badge ? `<span class="badge">${badge}</span>` : ''}
       </button></li>`;
     })
@@ -426,7 +468,7 @@ function renderDetail(id) {
   };
   const rows = SIDES.map(
     (side) =>
-      `<tr><td class="${s.winner === side ? 'won' : ''}">${esc(m.teams[side])}${s.winner === side ? ' 🏆' : ''}</td>${columns
+      `<tr class="t${side}"><td>${esc(m.teams[side])}${s.winner === side ? ' 🏆' : ''}</td>${columns
         .map((c) => cell(c.set, side))
         .join('')}</tr>`,
   ).join('');
@@ -437,7 +479,7 @@ function renderDetail(id) {
 
   el.innerHTML = `
     <div class="card">
-      <h2>${esc(m.teams.a)} vs ${esc(m.teams.b)}</h2>
+      <h2><span class="ta">${esc(m.teams.a)}</span> vs <span class="tb">${esc(m.teams.b)}</span></h2>
       <div class="meta">${esc(dateFmt.format(m.createdAt))} · ${esc(formatLabel(cfg))}</div>
       <div class="meta">${s.winner ? `Ganó ${esc(m.teams[s.winner])}` : isActive ? 'En curso' : 'Sin terminar'}${
         first && last ? ` · ${formatDuration(last - first)}` : ''
@@ -451,15 +493,15 @@ function renderDetail(id) {
       }
     </div>
     <div class="card stats">
-      <span></span><span>${esc(m.teams.a)}</span><span>${esc(m.teams.b)}</span>
+      <span></span><span class="ta">${esc(m.teams.a)}</span><span class="tb">${esc(m.teams.b)}</span>
       <span>Puntos ganados</span><span>${count('a')}</span><span>${count('b')}</span>
       <span>Juegos ganados</span><span>${s.gamesWon.a}</span><span>${s.gamesWon.b}</span>
       <span>Puntos desde el reloj</span><span>${count('a', 'reloj')}</span><span>${count('b', 'reloj')}</span>
     </div>
     <p class="meta">${m.points.length} puntos · ${fromWatch} anotados desde el reloj</p>
     <div class="actions">
-      ${!s.winner ? `<button class="btn primary" data-action="resume">${isActive ? 'Volver al partido' : 'Continuar'}</button>` : ''}
-      <button class="btn danger" data-action="delete">Eliminar</button>
+      ${!s.winner ? `<button class="btn btn-primary btn-xl" data-action="resume">${isActive ? 'Volver al partido' : 'Seguir este partido'}</button>` : ''}
+      <button class="btn btn-danger btn-lg" data-action="delete">Borrar partido</button>
     </div>`;
 
   el.querySelector('[data-action="resume"]')?.addEventListener('click', () => {
@@ -487,21 +529,27 @@ function init() {
   $('#btn-resume').addEventListener('click', () => (location.hash = '#/partido'));
   $('#btn-history').addEventListener('click', () => (location.hash = '#/historial'));
   $('#setup-form').addEventListener('submit', startMatch);
-  $('#setup-form').addEventListener('change', syncFinalSetField);
+  $('#setup-form').addEventListener('change', syncSetup);
   $$('.side').forEach((el) => el.addEventListener('click', () => addPoint(el.dataset.side, 'pantalla')));
   $('#btn-undo').addEventListener('click', undo);
   $('#btn-watch').addEventListener('click', toggleWatch);
-  $('#btn-options').addEventListener('click', () => {
-    const opts = $('#options');
-    opts.hidden = !opts.hidden;
-    $('#btn-options').setAttribute('aria-expanded', String(!opts.hidden));
+  const setMenu = (open) => {
+    $('#menu').hidden = !open;
+    $('#btn-menu').setAttribute('aria-expanded', String(open));
+  };
+  $('#btn-menu').addEventListener('click', () => setMenu(true));
+  $('#btn-menu-close').addEventListener('click', () => setMenu(false));
+  $('#menu').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) setMenu(false); // tap outside the sheet
   });
-  $('#options').addEventListener('change', onOptionChange);
+  $('#menu').addEventListener('change', onOptionChange);
   $('#btn-finish').addEventListener('click', () => {
     const msg = state?.winner
       ? '¿Cerrar el partido?'
       : '¿Terminar el partido sin ganador? Queda guardado en el historial.';
-    if (confirm(msg)) closeMatch();
+    if (!confirm(msg)) return;
+    setMenu(false);
+    closeMatch();
   });
   $('#btn-winner-undo').addEventListener('click', undo);
   $('#btn-winner-close').addEventListener('click', closeMatch);
