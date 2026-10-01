@@ -126,7 +126,8 @@ function renderWatchLegend(el, teams) {
 
 function renderSetup() {
   const form = $('#setup-form');
-  const cfg = normalizeConfig(settings.config ?? {});
+  // Remember the last format, but every new match starts with advantage at 40-40 (user's choice).
+  const cfg = normalizeConfig({ ...settings.config, deuce: 'advantage' });
   form.teamA.value = settings.teams.a;
   form.teamB.value = settings.teams.b;
   for (const name of ['bestOf', 'gamesPerSet', 'deuce', 'finalSet']) {

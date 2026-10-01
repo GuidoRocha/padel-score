@@ -11,7 +11,7 @@ export const DEUCE_MODES = {
 export const DEFAULT_CONFIG = Object.freeze({
   bestOf: 3, // 1 | 3
   gamesPerSet: 6, // 6 | 4
-  deuce: 'golden', // key of DEUCE_MODES
+  deuce: 'advantage', // key of DEUCE_MODES
   finalSet: 'supertb', // 'supertb' | 'full': how the deciding set is played
   tiebreakTo: 7,
   superTiebreakTo: 10,
