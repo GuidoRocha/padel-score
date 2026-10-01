@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0c1712">
+  <meta name="description" content="Marcador de pádel controlado desde el reloj">
+  <title>Pádel Score</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="css/styles.css">
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+  <main id="app">
+    <!-- Inicio -->
+    <section id="view-home" class="view">
+      <header class="brand">
+        <img src="icons/icon-192.png" alt="" width="56" height="56">
+        <h1>Pádel Score</h1>
+      </header>
+      <button id="btn-resume" class="btn primary big" hidden>
+        Continuar partido
+        <small id="resume-info"></small>
+      </button>
+      <button id="btn-new" class="btn primary big">Nuevo partido</button>
+      <button id="btn-history" class="btn secondary big">Historial</button>
+      <div class="help">
+        <h2>Cómo se usa con el reloj</h2>
+        <ol>
+          <li>Abrí el partido y tocá <b>⌚ Activar reloj</b>.</li>
+          <li>En el reloj, entrá a la pantalla de <b>música</b>.</li>
+          <li><b>⏮ izquierda</b>: punto para el equipo de la izquierda. <b>⏭ derecha</b>: punto para el de la derecha. <b>⏯ centro</b>: deshacer.</li>
+        </ol>
+        <p>Un pitido: punto de la izquierda. Dos pitidos: punto de la derecha.</p>
+        <h2>Para que no falle con el celu bloqueado</h2>
+        <ul>
+          <li>No toques <b>dos veces rápido el centro ⏯</b>: Android lo toma como "siguiente" y suma a la derecha.</li>
+          <li>En el Samsung, poné <b>Chrome</b> y <b>FunDo Health</b> con batería <b>"Sin restricciones"</b>.</li>
+          <li>No cierres (deslizando) la notificación de música de Chrome.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Configurar partido -->
+    <section id="view-setup" class="view" hidden>
+      <header class="bar">
+        <button class="icon-btn" data-nav="#/" aria-label="Volver">‹</button>
+        <h1>Nuevo partido</h1>
+        <span></span>
+      </header>
+      <form id="setup-form" class="setup">
+        <label class="field">
+          <span>Equipo izquierda <em>⏮</em></span>
+          <input name="teamA" maxlength="20" autocomplete="off" required>
+        </label>
+        <label class="field">
+          <span>Equipo derecha <em>⏭</em></span>
+          <input name="teamB" maxlength="20" autocomplete="off" required>
+        </label>
+        <fieldset class="segmented">
+          <legend>Sets</legend>
+          <label><input type="radio" name="bestOf" value="3"><span>Mejor de 3</span></label>
+          <label><input type="radio" name="bestOf" value="1"><span>1 set</span></label>
+        </fieldset>
+        <fieldset class="segmented">
+          <legend>Juegos por set</legend>
+          <label><input type="radio" name="gamesPerSet" value="6"><span>6</span></label>
+          <label><input type="radio" name="gamesPerSet" value="4"><span>4</span></label>
+        </fieldset>
+        <fieldset class="segmented">
+          <legend>En 40-40</legend>
+          <label><input type="radio" name="deuce" value="golden"><span>Punto de oro</span></label>
+          <label><input type="radio" name="deuce" value="advantage"><span>Ventaja</span></label>
+          <label><input type="radio" name="deuce" value="star"><span>Star point</span></label>
+        </fieldset>
+        <fieldset class="segmented" id="final-set-field">
+          <legend>Tercer set</legend>
+          <label><input type="radio" name="finalSet" value="supertb"><span>Super tie-break a 10</span></label>
+          <label><input type="radio" name="finalSet" value="full"><span>Set completo</span></label>
+        </fieldset>
+        <button type="submit" class="btn primary big">Empezar</button>
+      </form>
+    </section>
+
+    <!-- Partido -->
+    <section id="view-match" class="view match" hidden>
+      <header class="bar">
+        <button class="icon-btn" data-nav="#/" aria-label="Inicio">‹</button>
+        <h1 id="match-format"></h1>
+        <button id="btn-finish" class="text-btn">Terminar</button>
+      </header>
+      <div id="status-banner" class="status-banner" aria-live="polite"></div>
+      <div class="board">
+        <button class="side" data-side="a" aria-label="Punto izquierda">
+          <span class="team" data-f="team"></span>
+          <span class="points" data-f="points"></span>
+          <span class="games"><span data-f="games"></span><small>juegos</small></span>
+          <span class="sets"><span data-f="sets"></span><small>sets</small></span>
+          <span class="hint-key">⏮</span>
+        </button>
+        <button class="side" data-side="b" aria-label="Punto derecha">
+          <span class="team" data-f="team"></span>
+          <span class="points" data-f="points"></span>
+          <span class="games"><span data-f="games"></span><small>juegos</small></span>
+          <span class="sets"><span data-f="sets"></span><small>sets</small></span>
+          <span class="hint-key">⏭</span>
+        </button>
+      </div>
+      <div id="sets-line" class="sets-line"></div>
+      <div class="controls">
+        <button id="btn-undo" class="btn secondary">↶ Deshacer</button>
+        <button id="btn-watch" class="btn watch" data-status="off">⌚ Activar reloj</button>
+        <button id="btn-options" class="btn secondary icon" aria-label="Opciones" aria-expanded="false">⚙</button>
+      </div>
+      <div id="options" class="options" hidden>
+        <label class="toggle"><input type="checkbox" name="beeps"><span>Pitidos al sumar</span></label>
+        <label class="toggle"><input type="checkbox" name="voice"><span>Cantar el marcador por voz <small>(solo con la pantalla del celu encendida)</small></span></label>
+        <label class="toggle"><input type="checkbox" name="wakeLock"><span>Mantener pantalla del celu encendida</span></label>
+        <label class="toggle"><input type="checkbox" name="notify"><span>Notificación con el marcador <small>(puede sacar al reloj de la pantalla de música)</small></span></label>
+      </div>
+      <ol id="log" class="log"></ol>
+      <div id="winner" class="winner" hidden>
+        <div class="winner-card">
+          <div class="trophy">🏆</div>
+          <h2 id="winner-title"></h2>
+          <p id="winner-score"></p>
+          <button id="btn-winner-undo" class="btn secondary">↶ Deshacer último punto</button>
+          <button id="btn-winner-close" class="btn primary">Guardar y salir</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Historial -->
+    <section id="view-history" class="view" hidden>
+      <header class="bar">
+        <button class="icon-btn" data-nav="#/" aria-label="Volver">‹</button>
+        <h1>Historial</h1>
+        <span></span>
+      </header>
+      <ul id="history-list" class="history"></ul>
+      <p id="history-empty" class="empty" hidden>Todavía no hay partidos.</p>
+    </section>
+
+    <!-- Detalle -->
+    <section id="view-detail" class="view" hidden>
+      <header class="bar">
+        <button class="icon-btn" data-nav="#/historial" aria-label="Volver">‹</button>
+        <h1>Partido</h1>
+        <span></span>
+      </header>
+      <div id="detail" class="detail"></div>
+    </section>
+  </main>
+</body>
+</html>
