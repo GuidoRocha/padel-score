@@ -379,6 +379,22 @@ async function toggleWatch() {
   updateMetadata();
 }
 
+const THEME_COLOR = { rosa: '#7c4ddb', negro: '#0a0c0b' }; // browser / status bar color
+
+function applyTheme(theme) {
+  const name = theme === 'negro' ? 'negro' : 'rosa';
+  if (name === 'negro') document.documentElement.dataset.theme = 'negro';
+  else delete document.documentElement.dataset.theme;
+  $('meta[name="theme-color"]').content = THEME_COLOR[name];
+  for (const input of $$('[data-theme-switch] input')) input.checked = input.value === name;
+}
+
+function onThemeChange(event) {
+  settings = { ...settings, theme: event.target.value };
+  store.saveSettings(settings);
+  applyTheme(settings.theme);
+}
+
 function syncOptions() {
   for (const name of ['beeps', 'voice', 'wakeLock', 'notify']) {
     $(`#menu input[name="${name}"]`).checked = Boolean(settings[name]);
@@ -386,6 +402,7 @@ function syncOptions() {
 }
 
 async function onOptionChange(event) {
+  if (event.target.closest('[data-theme-switch]')) return; // handled by onThemeChange
   const { name, checked } = event.target;
   if (name === 'notify' && checked && !(await requestNotifications())) {
     event.target.checked = false;
@@ -543,6 +560,8 @@ function init() {
     if (e.target === e.currentTarget) setMenu(false); // tap outside the sheet
   });
   $('#menu').addEventListener('change', onOptionChange);
+  $$('[data-theme-switch]').forEach((el) => el.addEventListener('change', onThemeChange));
+  applyTheme(settings.theme);
   $('#btn-finish').addEventListener('click', () => {
     const msg = state?.winner
       ? '¿Cerrar el partido?'
@@ -568,6 +587,8 @@ function init() {
   window.addEventListener('hashchange', route);
   window.addEventListener('storage', (e) => {
     if (e.key !== null && !e.key.startsWith('padel.')) return;
+    settings = store.loadSettings();
+    applyTheme(settings.theme);
     syncMatch();
     updateMetadata();
     route();

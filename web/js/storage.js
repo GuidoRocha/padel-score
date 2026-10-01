@@ -10,6 +10,7 @@ export const DEFAULT_SETTINGS = Object.freeze({
   voice: false,
   notify: false,
   wakeLock: false,
+  theme: 'rosa', // 'rosa' | 'negro'
   teams: { a: 'Nosotros', b: 'Ellos' },
   config: null, // last used match format
 });

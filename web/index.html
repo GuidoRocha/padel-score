@@ -10,6 +10,15 @@
   <link rel="icon" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <link rel="stylesheet" href="css/styles.css">
+  <script>
+    // Apply the saved theme before the first paint so the page doesn't flash the other one.
+    try {
+      if (JSON.parse(localStorage.getItem('padel.settings.v1') || '{}').theme === 'negro') {
+        document.documentElement.dataset.theme = 'negro';
+        document.querySelector('meta[name="theme-color"]').content = '#0a0c0b';
+      }
+    } catch {}
+  </script>
   <script type="module" src="js/app.js"></script>
 </head>
 <body>
@@ -59,6 +68,16 @@
             <li>No cierres la notificación de música de Chrome.</li>
           </ul>
         </details>
+      </section>
+
+      <section class="card">
+        <div class="theme-switch" data-theme-switch role="radiogroup" aria-label="Tema de colores">
+          <span>Tema</span>
+          <div class="options">
+            <label><input type="radio" name="theme-home" value="rosa"><span class="swatch sw-rosa"><i></i>Rosa</span></label>
+            <label><input type="radio" name="theme-home" value="negro"><span class="swatch sw-negro"><i></i>Negro</span></label>
+          </div>
+        </div>
       </section>
     </section>
 
@@ -151,6 +170,13 @@
       <div id="menu" class="sheet" hidden>
         <div class="sheet-card" role="dialog" aria-label="Opciones">
           <h2>Opciones</h2>
+          <div class="theme-switch" data-theme-switch role="radiogroup" aria-label="Tema de colores">
+            <span>Tema</span>
+            <div class="options">
+              <label><input type="radio" name="theme-menu" value="rosa"><span class="swatch sw-rosa"><i></i>Rosa</span></label>
+              <label><input type="radio" name="theme-menu" value="negro"><span class="swatch sw-negro"><i></i>Negro</span></label>
+            </div>
+          </div>
           <label class="toggle"><input type="checkbox" name="beeps"><span>Pitidos al sumar un punto</span></label>
           <label class="toggle"><input type="checkbox" name="voice"><span>Decir el resultado en voz alta <small>Solo con la pantalla del celu prendida</small></span></label>
           <label class="toggle"><input type="checkbox" name="wakeLock"><span>No apagar la pantalla del celu</span></label>
