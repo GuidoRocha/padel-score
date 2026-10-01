@@ -10,14 +10,16 @@ export function unlockAudio() {
   if (ctx.state === 'suspended') ctx.resume().catch(() => {});
 }
 
-function tone(freq, start, duration, gain = 0.25) {
+// `to`: optional end frequency, for a sliding tone.
+function tone(freq, start, duration, to) {
   const osc = ctx.createOscillator();
   const amp = ctx.createGain();
-  osc.frequency.value = freq;
   osc.type = 'sine';
   const t0 = ctx.currentTime + start;
+  osc.frequency.setValueAtTime(freq, t0);
+  if (to) osc.frequency.exponentialRampToValueAtTime(to, t0 + duration);
   amp.gain.setValueAtTime(0, t0);
-  amp.gain.linearRampToValueAtTime(gain, t0 + 0.01);
+  amp.gain.linearRampToValueAtTime(0.25, t0 + 0.01);
   amp.gain.exponentialRampToValueAtTime(0.0001, t0 + duration);
   osc.connect(amp).connect(ctx.destination);
   osc.start(t0);
@@ -27,7 +29,7 @@ function tone(freq, start, duration, gain = 0.25) {
 const PATTERNS = {
   a: [[880, 0, 0.14]], // one high beep: point for the left team
   b: [[660, 0, 0.1], [660, 0.16, 0.1]], // two beeps: point for the right team
-  undo: [[520, 0, 0.12], [390, 0.14, 0.18]],
+  undo: [[700, 0, 0.6, 250]], // one falling tone: can't be mistaken for 1 or 2 beeps
   game: [[660, 0, 0.1], [880, 0.12, 0.1], [1100, 0.24, 0.16]],
   set: [[660, 0, 0.12], [880, 0.14, 0.12], [1320, 0.28, 0.3]],
 };
@@ -35,7 +37,7 @@ const PATTERNS = {
 export function beep(pattern) {
   if (!ctx) return;
   if (ctx.state === 'suspended') ctx.resume().catch(() => {});
-  for (const [freq, start, duration] of PATTERNS[pattern] ?? []) tone(freq, start, duration);
+  for (const [freq, start, duration, to] of PATTERNS[pattern] ?? []) tone(freq, start, duration, to);
 }
 
 export function speak(text) {

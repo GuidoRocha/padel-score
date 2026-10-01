@@ -57,13 +57,13 @@
         <ol class="steps">
           <li>Empezá un partido y tocá <b>Activar reloj</b>.</li>
           <li>En el reloj, abrí la pantalla de <b>música</b>.</li>
-          <li>Tocá el lado de quien ganó el punto.</li>
+          <li>En el reloj: botón de la <b>izquierda</b> suma al equipo de la izquierda, el de la <b>derecha</b> al de la derecha y el del <b>medio</b> deshace.</li>
         </ol>
-        <p class="note">Con el celu guardado vas a oír <b>1 pitido</b> por punto rosa y <b>2 pitidos</b> por punto violeta.</p>
+        <p class="note">Con el celu guardado vas a oír <b>1 pitido</b> cuando suma el equipo de la izquierda y <b>2 pitidos</b> cuando suma el de la derecha. Si ese punto gana el juego, después suena una musiquita. Al deshacer suena un tono que baja.</p>
         <details class="tips">
           <summary>Consejos para que no falle</summary>
           <ul>
-            <li>No toques <b>dos veces rápido el botón del medio</b>: el celu lo toma como “siguiente” y suma al equipo violeta.</li>
+            <li>No toques <b>dos veces rápido el botón del medio</b>: el celu lo toma como “siguiente” y suma al equipo de la derecha.</li>
             <li>En el Samsung: Ajustes → Apps → <b>Chrome</b> y <b>FunDo Health</b> → Batería → <b>Sin restricciones</b>.</li>
             <li>No cierres la notificación de música de Chrome.</li>
           </ul>
@@ -90,12 +90,12 @@
       </header>
       <form id="setup-form" class="setup">
         <label class="team-field team-a">
-          <span class="team-label"><svg><use href="#i-prev"/></svg> Equipo rosa <small>(izquierda)</small></span>
-          <input name="teamA" maxlength="16" autocomplete="off" required>
+          <span class="team-label"><svg><use href="#i-prev"/></svg> Equipo de la izquierda</span>
+          <input name="teamA" maxlength="16" autocomplete="off">
         </label>
         <label class="team-field team-b">
-          <span class="team-label"><svg><use href="#i-next"/></svg> Equipo violeta <small>(derecha)</small></span>
-          <input name="teamB" maxlength="16" autocomplete="off" required>
+          <span class="team-label"><svg><use href="#i-next"/></svg> Equipo de la derecha</span>
+          <input name="teamB" maxlength="16" autocomplete="off">
         </label>
 
         <details class="card rules" id="rules">
@@ -121,7 +121,7 @@
             <label><input type="radio" name="deuce" value="star"><span>Star point</span></label>
           </fieldset>
           <fieldset class="segmented" id="final-set-field">
-            <legend>Si quedan 1 set a 1</legend>
+            <legend>Si empatan 1 set a 1</legend>
             <label><input type="radio" name="finalSet" value="supertb"><span>Súper tie-break a 10</span></label>
             <label><input type="radio" name="finalSet" value="full"><span>Tercer set completo</span></label>
           </fieldset>
@@ -136,7 +136,7 @@
       <header class="bar">
         <button class="icon-btn" data-nav="#/" aria-label="Inicio"><svg><use href="#i-back"/></svg></button>
         <h1 id="match-format"></h1>
-        <button id="btn-menu" class="icon-btn" aria-label="Menú" aria-expanded="false"><svg><use href="#i-menu"/></svg></button>
+        <button id="btn-menu" class="btn btn-soft menu-btn" aria-expanded="false"><svg aria-hidden="true"><use href="#i-menu"/></svg> Menú</button>
       </header>
 
       <div id="status-banner" class="status-banner" aria-live="polite"></div>
@@ -163,8 +163,8 @@
       </div>
       <p id="sets-line" class="sets-line"></p>
 
-      <button id="btn-watch" class="btn btn-watch btn-xl" data-status="off"></button>
       <button id="btn-undo" class="btn btn-outline btn-lg"><svg><use href="#i-undo"/></svg> Deshacer último punto</button>
+      <button id="btn-watch" class="btn btn-watch btn-xl" data-status="off"></button>
       <p id="last-point" class="last-point"></p>
 
       <div id="menu" class="sheet" hidden>
@@ -179,7 +179,7 @@
           </div>
           <label class="toggle"><input type="checkbox" name="beeps"><span>Pitidos al sumar un punto</span></label>
           <label class="toggle"><input type="checkbox" name="voice"><span>Decir el resultado en voz alta <small>Solo con la pantalla del celu prendida</small></span></label>
-          <label class="toggle"><input type="checkbox" name="wakeLock"><span>No apagar la pantalla del celu</span></label>
+          <label class="toggle"><input type="checkbox" name="wakeLock"><span>No apagar la pantalla del celu <small>Sirve si dejás el celu en el banco. Si lo guardás en el bolsillo, dejalo apagado: un roce puede sumar un punto.</small></span></label>
           <label class="toggle"><input type="checkbox" name="notify"><span>Avisar el resultado con una notificación <small>Puede sacar al reloj de la pantalla de música</small></span></label>
           <button id="btn-finish" class="btn btn-danger btn-lg">Terminar partido</button>
           <button id="btn-menu-close" class="btn btn-soft btn-lg">Cerrar</button>

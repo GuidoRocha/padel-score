@@ -38,6 +38,7 @@ const matchVisible = () => !$('#view-match').hidden;
 function show(view) {
   for (const v of VIEWS) $(`#view-${v}`).hidden = v !== view;
   $('#menu').hidden = true;
+  $('#btn-menu').setAttribute('aria-expanded', 'false');
   window.scrollTo(0, 0);
   applyWakeLock();
 }
@@ -48,7 +49,8 @@ function route() {
     renderSetup();
     show('setup');
   } else if (path === 'partido') {
-    if (!loadActive()) return void (location.hash = '#/');
+    // replace(), not a new history entry: Back from a match must not land on a stale screen.
+    if (!loadActive()) return void location.replace('#/');
     renderMatch();
     show('match');
   } else if (path === 'historial' && id) {
@@ -172,7 +174,8 @@ function startMatch(event) {
   store.setActiveId(match.id);
   store.requestPersistence();
   unlockAudio();
-  location.hash = '#/partido';
+  // replace() so Back from the match goes home instead of to this form (which would start a new match).
+  location.replace('#/partido');
 }
 
 // ---------- Match ----------
@@ -204,7 +207,7 @@ function statusText(cfg, d) {
     deuce: 'Iguales',
     advantage: `Ventaja ${match.teams[d.advantage]}`,
     tiebreak: 'Tie-break',
-    supertb: 'Super tie-break',
+    supertb: 'Súper tie-break a 10',
   };
   const parts = [labels[d.status]];
   const p = pressureOf(cfg);
@@ -221,12 +224,14 @@ function renderMatch() {
     const el = $(`.side[data-side="${side}"]`);
     el.querySelector('[data-f="team"]').textContent = match.teams[side];
     el.querySelector('[data-f="points"]').textContent = state.winner ? (state.winner === side ? '🏆' : '') : d[side];
-    el.querySelector('[data-f="games"]').textContent = state.current ? state.current.games[side] : '–';
+    el.querySelector('[data-f="games"]').textContent =
+      !state.current || state.current.superTiebreak ? '–' : state.current.games[side];
     el.querySelector('[data-f="sets"]').textContent = state.setsWon[side];
   }
   $('#status-banner').textContent = statusText(cfg, d);
   const done = formatSets(state);
-  $('#sets-line').textContent = done && !state.winner ? `Sets anteriores: ${done}` : '';
+  const setLabel = state.current?.superTiebreak ? 'Súper tie-break' : cfg.bestOf === 1 ? '' : `Set ${state.sets.length + 1}`;
+  $('#sets-line').textContent = state.winner ? '' : [setLabel, done && `Anteriores: ${done}`].filter(Boolean).join(' · ');
   $('#btn-undo').disabled = match.points.length === 0;
   renderLastPoint();
   renderWinner();
@@ -239,7 +244,9 @@ function renderLastPoint() {
   const time = last && new Intl.DateTimeFormat('es', { hour: '2-digit', minute: '2-digit' }).format(last.t);
   $('#last-point').textContent = last
     ? `Último punto: ${match.teams[last.s]} · ${last.src === 'reloj' ? 'desde el reloj' : 'desde el celu'} · ${time}`
-    : 'Tocá un lado o usá el reloj para sumar el primer punto';
+    : watch.status === 'on'
+      ? 'Reloj listo: ahora abrí la pantalla de música en el reloj'
+      : 'Tocá un lado o usá el reloj para sumar el primer punto';
 }
 
 function renderWinner() {
@@ -278,7 +285,7 @@ function addPoint(side, src) {
 
 function undo() {
   if (!syncMatch() || match.points.length === 0) return;
-  match.points.pop();
+  const removed = match.points.pop();
   state = computeState(match.config, sidesOf(match));
   match.winner = state.winner;
   if (!state.winner) match.finishedAt = null;
@@ -287,7 +294,11 @@ function undo() {
   if (settings.beeps) beep('undo');
   if (settings.voice) speak(`Deshecho. ${spokenPoint()}`);
   updateMetadata();
-  if (matchVisible()) renderMatch();
+  if (matchVisible()) {
+    renderMatch();
+    // Otherwise the line would show the previous point, as if nothing (or a point) had happened.
+    $('#last-point').textContent = `Se borró el último punto de ${match.teams[removed.s]}`;
+  }
 }
 
 function spokenSets(s) {
@@ -324,7 +335,11 @@ function spoken(kind, side) {
 }
 
 function announce(kind, side) {
-  if (settings.beeps) beep(kind === 'point' ? side : kind === 'game' ? 'game' : 'set');
+  if (settings.beeps) {
+    // Always the team's beep first (so it's clear who scored), then a tune if it closed a game/set.
+    beep(side);
+    if (kind !== 'point') setTimeout(() => beep(kind === 'game' ? 'game' : 'set'), 450);
+  }
   if (settings.voice) speak(spoken(kind, side));
   if (settings.notify) notifyScore(scoreTitle(), `${match.teams.a} vs ${match.teams.b} · ${scoreSummary(state)}`);
   updateMetadata();
@@ -347,7 +362,7 @@ function updateMetadata() {
 }
 
 function closeMatch() {
-  if (!syncMatch()) return void (location.hash = '#/');
+  if (!syncMatch()) return void location.replace('#/');
   if (!match.finishedAt) match.finishedAt = Date.now();
   store.saveMatch(match);
   store.setActiveId(null);
@@ -355,7 +370,7 @@ function closeMatch() {
   match = null;
   state = null;
   if (watch.enabled) watch.stop();
-  location.hash = `#/historial/${encodeURIComponent(id)}`;
+  location.replace(`#/historial/${encodeURIComponent(id)}`);
 }
 
 // ---------- Watch, options, wake lock ----------
@@ -368,6 +383,8 @@ function renderWatchStatus(status) {
     paused: `${icon('watch')} Tocá para reactivar el reloj`,
     off: `${icon('watch')} Activar reloj`,
   }[status];
+  // Before the first point, the hint under the board depends on the watch state.
+  if (match && matchVisible() && match.points.length === 0) renderLastPoint();
 }
 
 async function toggleWatch() {
@@ -474,7 +491,7 @@ function renderDetail(id) {
   const s = computeState(m.config, sidesOf(m));
   const cfg = normalizeConfig(m.config);
   const isActive = store.getActiveId() === m.id;
-  const columns = s.sets.map((set, i) => ({ label: set.superTiebreak ? 'STB' : `Set ${i + 1}`, set }));
+  const columns = s.sets.map((set, i) => ({ label: set.superTiebreak ? 'Súper tie-break' : `Set ${i + 1}`, set }));
   if (s.current && s.applied > 0) {
     const cur = s.current;
     const live = cur.superTiebreak ? cur.points : cur.games;
@@ -492,8 +509,8 @@ function renderDetail(id) {
   ).join('');
   const first = m.points[0]?.t;
   const last = m.finishedAt ?? m.points.at(-1)?.t;
-  const fromWatch = m.points.filter((p) => p.src === 'reloj').length;
-  const count = (side, src) => m.points.filter((p) => p.s === side && (!src || p.src === src)).length;
+  const count = (side) => m.points.filter((p) => p.s === side).length;
+  const total = m.points.length;
 
   el.innerHTML = `
     <div class="card">
@@ -514,21 +531,23 @@ function renderDetail(id) {
       <span></span><span class="ta">${esc(m.teams.a)}</span><span class="tb">${esc(m.teams.b)}</span>
       <span>Puntos ganados</span><span>${count('a')}</span><span>${count('b')}</span>
       <span>Juegos ganados</span><span>${s.gamesWon.a}</span><span>${s.gamesWon.b}</span>
-      <span>Puntos desde el reloj</span><span>${count('a', 'reloj')}</span><span>${count('b', 'reloj')}</span>
     </div>
-    <p class="meta">${m.points.length} puntos · ${fromWatch} anotados desde el reloj</p>
+    <p class="meta">${total} ${total === 1 ? 'punto jugado' : 'puntos jugados'}</p>
     <div class="actions">
-      ${!s.winner ? `<button class="btn btn-primary btn-xl" data-action="resume">${isActive ? 'Volver al partido' : 'Seguir este partido'}</button>` : ''}
+      ${isActive && !s.winner ? '<button class="btn btn-primary btn-xl" data-action="resume">Volver al partido</button>' : ''}
+      ${!isActive ? '<button class="btn btn-primary btn-xl" data-action="home">Listo, volver al inicio</button>' : ''}
+      ${!isActive && !s.winner ? '<button class="btn btn-soft btn-lg" data-action="resume">Seguir este partido</button>' : ''}
       <button class="btn btn-danger btn-lg" data-action="delete">Borrar partido</button>
     </div>`;
 
+  el.querySelector('[data-action="home"]')?.addEventListener('click', () => (location.hash = '#/'));
   el.querySelector('[data-action="resume"]')?.addEventListener('click', () => {
     store.setActiveId(m.id);
     match = null;
     location.hash = '#/partido';
   });
   el.querySelector('[data-action="delete"]').addEventListener('click', () => {
-    if (!confirm('¿Eliminar este partido del historial?')) return;
+    if (!confirm('¿Borrar este partido para siempre? No se puede recuperar.')) return;
     if (match?.id === m.id) {
       match = null;
       state = null;
@@ -543,22 +562,53 @@ function renderDetail(id) {
 
 function init() {
   $$('[data-nav]').forEach((btn) => btn.addEventListener('click', () => (location.hash = btn.dataset.nav)));
-  $('#btn-new').addEventListener('click', () => (location.hash = '#/nuevo'));
+  $('#btn-new').addEventListener('click', () => {
+    const id = store.getActiveId();
+    const m = id && store.getMatch(id);
+    const unfinished = m && m.points.length > 0 && !computeState(m.config, sidesOf(m)).winner;
+    const msg = 'Hay un partido sin terminar. ¿Empezar uno nuevo? El anterior queda guardado en "Partidos anteriores".';
+    if (unfinished && !confirm(msg)) return;
+    location.hash = '#/nuevo';
+  });
   $('#btn-resume').addEventListener('click', () => (location.hash = '#/partido'));
   $('#btn-history').addEventListener('click', () => (location.hash = '#/historial'));
   $('#setup-form').addEventListener('submit', startMatch);
   $('#setup-form').addEventListener('change', syncSetup);
-  $$('.side').forEach((el) => el.addEventListener('click', () => addPoint(el.dataset.side, 'pantalla')));
-  $('#btn-undo').addEventListener('click', undo);
+  // Select the whole name on tap so it's easy to replace (setTimeout: Android places the caret after focus).
+  $$('#setup-form input[name^="team"]').forEach((input) =>
+    input.addEventListener('focus', () => setTimeout(() => input.select(), 0)),
+  );
+  // A double tap or a brush on the screen must not count twice: points share one guard, undo has its own.
+  const once = (fn, ms = 800) => {
+    let last = 0;
+    return (...args) => {
+      const now = Date.now();
+      if (now - last < ms) return;
+      last = now;
+      fn(...args);
+    };
+  };
+  const tapPoint = once((side) => addPoint(side, 'pantalla'));
+  const tapUndo = once(undo);
+  $$('.side').forEach((el) => el.addEventListener('click', () => tapPoint(el.dataset.side)));
+  $('#btn-undo').addEventListener('click', tapUndo);
   $('#btn-watch').addEventListener('click', toggleWatch);
   const setMenu = (open) => {
     $('#menu').hidden = !open;
     $('#btn-menu').setAttribute('aria-expanded', String(open));
   };
-  $('#btn-menu').addEventListener('click', () => setMenu(true));
-  $('#btn-menu-close').addEventListener('click', () => setMenu(false));
+  // The menu gets its own history entry so the phone's Back button closes it instead of leaving the match.
+  const closeMenu = () => (history.state?.menu ? history.back() : setMenu(false));
+  $('#btn-menu').addEventListener('click', () => {
+    setMenu(true);
+    history.pushState({ menu: true }, '');
+  });
+  $('#btn-menu-close').addEventListener('click', closeMenu);
   $('#menu').addEventListener('click', (e) => {
-    if (e.target === e.currentTarget) setMenu(false); // tap outside the sheet
+    if (e.target === e.currentTarget) closeMenu(); // tap outside the sheet
+  });
+  window.addEventListener('popstate', () => {
+    if (!history.state?.menu) setMenu(false);
   });
   $('#menu').addEventListener('change', onOptionChange);
   $$('[data-theme-switch]').forEach((el) => el.addEventListener('change', onThemeChange));
@@ -571,7 +621,7 @@ function init() {
     setMenu(false);
     closeMatch();
   });
-  $('#btn-winner-undo').addEventListener('click', undo);
+  $('#btn-winner-undo').addEventListener('click', tapUndo);
   $('#btn-winner-close').addEventListener('click', closeMatch);
   $('#history-list').addEventListener('click', (e) => {
     const btn = e.target.closest('button[data-id]');
